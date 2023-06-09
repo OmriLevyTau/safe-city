@@ -34,10 +34,10 @@ export default function Landing() {
             marginBottom: "8%",
           }}
         >
-          <h3 style={{ lineHeight: 1.5 }}>
-            Discover your route with our revolutionary navigation website.<br />
-            Empower and protect while saying goodbye to uncertainty and embracing safer journeys.<br />
-            Trust our cutting-edge technology to guide you through inspiring paths with confidence.<br />
+          <h3 style={{ lineHeight: 1.5 , fontSize: "2.9rem"}}>
+
+            Stride with Confidence: Your Guide to Safer Walks<br />
+
           </h3>
         </div>
 

@@ -10,6 +10,7 @@ export default function AppHome() {
   const [selectedSource, setSelectedSource] = useState("");
   const [selectedDestination, setSelectedDestination] = useState("");
   const [map, setMap] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const { isLoaded } = useLoadScript({
     googleMapsApiKey: "AIzaSyCuKXnYCsXCRcJlWL4wuCD6CUkJoN0YNS8",
@@ -36,12 +37,12 @@ export default function AppHome() {
     routePolyline = new window.google.maps.Polyline({
       path: decodedPath,
       geodesic: true,
-      strokeColor: "#FF00FF",
+      strokeColor: "#FF0000",
       strokeOpacity: 1.0,
-      strokeWeight: 3,
+      strokeWeight: 4,
     });
-    routePolyline.setMap(map);
 
+    
     const bounds = new window.google.maps.LatLngBounds();
     const pathCoordinates = decodedPath.map((coordinate) => [
       coordinate.lat(),
@@ -53,26 +54,38 @@ export default function AppHome() {
       );
     });
     map.fitBounds(bounds);
+    routePolyline?.setMap(map);
   };
 
   const handleSubmit = () => {
-    fetch(
-      `http://localhost:8000/home-search?src=${selectedSource}&dst=${selectedDestination}`
-    )
-      .then((result) => {
-        // routePolyline?.setMap(null);
-        return result.json();
-      })
-      .then((encodedPolyline) => {
-        updateMapWithRoute(encodedPolyline.route);
-      })
-      .catch((err) => console.log("There was an error fetching the route"));
+    setIsLoading(true);
+    if (!selectedSource || !selectedDestination) {
+      console.log("please fill address field");
+    } else {
+      fetch(
+        `http://localhost:8000/home-search?src=${selectedSource}&dst=${selectedDestination}`
+      )
+        .then((result) => {
+          return result.json();
+        })
+        .then((encodedPolyline) => {
+          updateMapWithRoute(encodedPolyline.route);
+          setIsLoading(false);
+        })
+        .then(() => addLine())
+        .catch((err) => console.log("There was an error fetching the route"));
+    }
   };
 
   const onLoad = (map) => {
     setMap(map);
   };
-
+  function removeLine() {
+    routePolyline?.setMap(null);
+  }
+  function addLine() {
+    routePolyline?.setMap(map);
+  }
   return (
     <div style={{ display: "flex", height: "100vh" }}>
       <div style={{ width: "30%", marginTop: "15%", textAlign: "center" }}>
@@ -107,7 +120,21 @@ export default function AppHome() {
           }}
           onClick={handleSubmit}
         >
-          Let's Go !
+          {!isLoading ? <>Let's Go !</> : <>Loading...</>}
+        </button>
+        <button
+          style={{
+            borderRadius: "10px",
+            width: "200px",
+            height: "50px",
+            fontFamily: fontFamily,
+            fontSize: "2rem",
+            backgroundColor: "#F7F0E2",
+            transition: "background-color 0.3s ease",
+          }}
+          onClick={removeLine}
+        >
+          Clear
         </button>
       </div>
       <div id="map" style={{ width: "70%" }}>
