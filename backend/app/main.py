@@ -21,19 +21,21 @@ app.add_middleware(
 
 streets_db = pd.read_csv(".//resources//final.csv")
 MEAN_SCORE = streets_db["normalized_lights_per_meter"].mean()
-streets_metadata = None
+
 
 def load_streets_metadata():
-    with open("./streets/streets.json", 'r') as f:
+    with open("./resources/streets.json", 'r') as f:
         data = json.load(f)
     data = data["features"]
-    
+
     geometries = [LineString(feature['geometry']['paths'][0]) for feature in data]
     attributes = [feature['attributes'] for feature in data]
     df = gpd.GeoDataFrame(attributes, geometry=geometries)
     return df
 
+
 streets_metadata = load_streets_metadata()
+
 
 @app.get("/home-search")
 async def welcome(src: str, dst: str):
@@ -47,13 +49,13 @@ class SafeCity:
     def __init__(self, api_key):
         self.api_key = api_key
 
-    def get_street_score(self, street_name):
+    @staticmethod
+    def get_street_score(street_name):
         for index, row in streets_db.iterrows():
             row_name = row["shem_angli"]
             if row_name in street_name.lower():
                 return row["normalized_lights_per_meter"]
         return MEAN_SCORE
-        
 
     def get_route_score(self, route):
         streets = self.get_streets_from_route(route)
@@ -114,35 +116,52 @@ class SafeCity:
         encoded_routes = [routes[idx]['overview_polyline']['points'] for idx in srtd_args]
         return encoded_routes
 
-    def calculate_bounding_box(self, lat1, lon1, lat2, lon2):
-        min_lat = min(lat1, lat2)
-        max_lat = max(lat1, lat2)
-        min_lng = min(lon1, lon2)
-        max_lng = max(lon1, lon2)
-        return min_lat, max_lat, min_lng, max_lng
+    def calculate_bounding_box(self, origin, destination):
+        url = "https://maps.googleapis.com/maps/api/directions/json?"
+        params = {
+            "origin": origin,
+            "destination": destination,
+            "mode": "walking",
+            "alternatives": "true",
+        }
+        json_results = self.get_request_wrapper(url, params)
+        bounds = jq.compile('.routes[0].bounds | .northeast, .southwest').input(json_results).all()
+        return bounds
 
     def sample_points_in_box(self, source, destination, num_points):
-        min_lat, max_lat, min_lng, max_lng = self.calculate_bounding_box(*source, *destination)
-        lats = np.random.uniform(low=min_lat, high=max_lat, size=num_points)
-        lngs = np.random.uniform(low=min_lng, high=max_lng, size=num_points)
+        bounds = self.calculate_bounding_box(source, destination)
+        lats = np.random.uniform(low=bounds[0]['lat'], high=bounds[1]['lat'], size=num_points)
+        lngs = np.random.uniform(low=bounds[0]['lng'], high=bounds[1]['lng'], size=num_points)
         return lats, lngs
 
-    def get_closest_street(self, lat, lng):
-        xy = Point(lat, lng).geometry
+    @staticmethod
+    def get_closest_street(lat, lng):
+        xy = Point(lat, lng)
         closest_street = streets_metadata.loc[streets_metadata["geometry"].distance(xy).idxmin()]
-        return closest_street["shem_angli"].lower()
-
+        return closest_street
 
     def get_street_with_max_score(self, streets):
         max_score = 0
         best_street = None
         for street in streets:
-            curr_score = self.get_street_score(street)
+            street_name = street["shem_angli"].lower()
+            curr_score = self.get_street_score(street_name)
             if curr_score >= max_score:
                 best_street = street
         return best_street
 
-    def sample_from_street(self, street_name):
-        return
+    @staticmethod
+    def sample_from_street(street):
+        start, end = street['geometry'].xy
+        lat = np.random.uniform(low=start[0], high=end[0], size=2)
+        lng = np.random.uniform(low=start[1], high=end[1], size=2)
+        return lat, lng
 
-
+    def get_routes_improved(self, origin, destination):
+        streets = []
+        lats, lngs = self.sample_points_in_box(origin, destination, 2)
+        for lat, lng in zip(lats, lngs):
+            streets.append(self.get_closest_street(lat, lng))
+        best_street = self.get_street_with_max_score(streets)
+        waypoints = self.sample_from_street(best_street)
+        return self.get_routes(origin, destination, waypoints)
