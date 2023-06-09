@@ -26,7 +26,6 @@ export default function AddressesGoogleMapsAutoComplete({
   const handleSelect = async (value) => {
     try {
       await geocodeByAddress(value, { language: "en" });
-      console.log(value);
       setSelectedAddresses(value);
       setAddress(value);
     } catch {
