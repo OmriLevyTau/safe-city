@@ -4,6 +4,10 @@ import requests
 import pandas as pd
 import numpy as np
 import jq
+import json
+import geopandas as gpd
+from shapely.geometry import LineString
+from shapely.geometry import Point
 
 
 app = FastAPI()
@@ -17,6 +21,19 @@ app.add_middleware(
 
 streets_db = pd.read_csv(".//resources//final.csv")
 MEAN_SCORE = streets_db["normalized_lights_per_meter"].mean()
+streets_metadata = None
+
+def load_streets_metadata():
+    with open("./streets/streets.json", 'r') as f:
+        data = json.load(f)
+    data = data["features"]
+    
+    geometries = [LineString(feature['geometry']['paths'][0]) for feature in data]
+    attributes = [feature['attributes'] for feature in data]
+    df = gpd.GeoDataFrame(attributes, geometry=geometries)
+    return df
+
+streets_metadata = load_streets_metadata()
 
 @app.get("/home-search")
 async def welcome(src: str, dst: str):
@@ -111,7 +128,10 @@ class SafeCity:
         return lats, lngs
 
     def get_closest_street(self, lat, lng):
-        return
+        xy = Point(lat, lng).geometry
+        closest_street = streets_metadata.loc[streets_metadata["geometry"].distance(xy).idxmin()]
+        return closest_street["shem_angli"].lower()
+
 
     def get_street_with_max_score(self, streets):
         max_score = 0
