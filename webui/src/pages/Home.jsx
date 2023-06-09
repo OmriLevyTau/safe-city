@@ -1,10 +1,10 @@
-import { GoogleMap, LoadScript, useLoadScript } from "@react-google-maps/api";
+import { GoogleMap, useLoadScript } from "@react-google-maps/api";
 import React, { useMemo, useState } from "react";
 import "./Home.css";
 import AddressesGoogleMapsAutoComplete from "./googleAddresses";
-import { encodedPolyline } from "./mockRoute";
 
 const fontFamily = "Geologica";
+let routePolyline;
 
 export default function AppHome() {
   const [selectedSource, setSelectedSource] = useState("");
@@ -12,7 +12,7 @@ export default function AppHome() {
   const [map, setMap] = useState(null);
 
   const { isLoaded } = useLoadScript({
-    googleMapsApiKey: "AIzaSyBYTJL9KvJm_85vQ9Xougdx85y4Hg2u7II",
+    googleMapsApiKey: "AIzaSyCuKXnYCsXCRcJlWL4wuCD6CUkJoN0YNS8",
   });
 
   const center = useMemo(() => ({ lat: 32.0853, lng: 34.7818 }), []);
@@ -29,12 +29,11 @@ export default function AppHome() {
     []
   );
 
-
   const updateMapWithRoute = (encodedPolyline) => {
     const decodedPath = new window.google.maps.geometry.encoding.decodePath(
       encodedPolyline
     );
-    const routePolyline = new window.google.maps.Polyline({
+    routePolyline = new window.google.maps.Polyline({
       path: decodedPath,
       geodesic: true,
       strokeColor: "#FF00FF",
@@ -56,15 +55,20 @@ export default function AppHome() {
     map.fitBounds(bounds);
   };
 
-
   const handleSubmit = () => {
-    updateMapWithRoute(encodedPolyline);
-
-    // fetch(`HomeSearch?src=${selectedSource}&dst=${selectedDestination}`)
-    //   .then((result) => result.json())
-    //   .then(() => console.log("show it on the map"))
-    //   .catch((err) => console.log("There was an error fetching the route"));
+    fetch(
+      `http://localhost:8000/home-search?src=${selectedSource}&dst=${selectedDestination}`
+    )
+      .then((result) => {
+        // routePolyline?.setMap(null);
+        return result.json();
+      })
+      .then((encodedPolyline) => {
+        updateMapWithRoute(encodedPolyline.route);
+      })
+      .catch((err) => console.log("There was an error fetching the route"));
   };
+
   const onLoad = (map) => {
     setMap(map);
   };

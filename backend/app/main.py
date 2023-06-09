@@ -1,6 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
+import json
+import random
+import requests
+import os
+import numpy as np
 
 app = FastAPI()
 app.add_middleware(
@@ -15,14 +19,11 @@ app.add_middleware(
 
 @app.get("/home-search")
 async def welcome(src:str, dst:str):
-    return {"src": src, "dst": dst}
+    maps_api_key = "AIzaSyCuKXnYCsXCRcJlWL4wuCD6CUkJoN0YNS8"
+    safe_city = SafeCity(maps_api_key)
+    route = safe_city.get_routes(src.replace(" ", "+"), dst.replace(" ", "+"))
+    return {"route": route[0]}
 
-
-import json
-import random
-import requests
-import os
-import numpy as np
 
 
 class SafeCity:
@@ -98,7 +99,7 @@ class SafeCity:
         scores = np.array([self.get_route_score(route) for route in routes])
         srtd_args = - np.argsort(- scores)
         encoded_routes = [routes[idx]['overview_polyline']['points'] for idx in srtd_args]
-        return json.dumps(encoded_routes)
+        return encoded_routes
 
     def calculate_bounding_box(self, lat1, lon1, lat2, lon2):
         min_lat = min(lat1, lat2)
