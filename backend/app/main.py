@@ -4,7 +4,9 @@ import json
 import random
 import requests
 import os
+import pandas as pd
 import numpy as np
+
 
 app = FastAPI()
 app.add_middleware(
@@ -15,7 +17,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
+streets_db = pd.read_csv(".//resources//final.csv")
+MEAN_SCORE = streets_db["normalized_lights_per_meter"].mean()
 
 @app.get("/home-search")
 async def welcome(src:str, dst:str):
@@ -25,13 +28,17 @@ async def welcome(src:str, dst:str):
     return {"route": route[0]}
 
 
-
 class SafeCity:
     def __init__(self, api_key):
         self.api_key = api_key
 
     def get_street_score(self, street_name):
-        return random.randint(0, 1000)
+        for index, row in streets_db.iterrows():
+            row_name = row["shem_angli"]
+            if row_name in street_name.lower():
+                return row["normalized_lights_per_meter"]
+        return MEAN_SCORE
+        
 
     def get_route_score(self, route):
         streets = self.get_streets_from_route(route)
@@ -128,3 +135,5 @@ class SafeCity:
 
     def sample_from_street(self, street_name):
         return
+
+
