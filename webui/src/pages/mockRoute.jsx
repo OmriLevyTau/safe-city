@@ -1,0 +1,1 @@
+export const encodedPolyline = "qawbEg~gsEL@JAHGkB_@{AYQpAO~A_Ce@w@OoDOsDO_CAcG?aGDmBBeFDwCC[GCXMf@oBtDkAtByD~IeB|Dg@`Be@nBkGgA"

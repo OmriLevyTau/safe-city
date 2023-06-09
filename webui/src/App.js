@@ -1,18 +1,7 @@
-import './App.css';
-import { useEffect } from 'react';
-import AppContent from './components/pages/AppContent/AppContent';
+import AppRoutes from "./pages/AppRoutes";
 
-function App() {
-
-  useEffect(()=>{
-    document.title = "Mr Know All"
-  }, [])
-
+export default function App() {
   return (
-    <div className="App">
-      <AppContent />
-    </div>
+    <AppRoutes />
   );
 }
-
-export default App;
