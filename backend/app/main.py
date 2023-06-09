@@ -1,11 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import json
-import random
 import requests
-import os
 import pandas as pd
 import numpy as np
+import jq
 
 
 app = FastAPI()
@@ -21,7 +19,7 @@ streets_db = pd.read_csv(".//resources//final.csv")
 MEAN_SCORE = streets_db["normalized_lights_per_meter"].mean()
 
 @app.get("/home-search")
-async def welcome(src:str, dst:str):
+async def welcome(src: str, dst: str):
     maps_api_key = "AIzaSyCuKXnYCsXCRcJlWL4wuCD6CUkJoN0YNS8"
     safe_city = SafeCity(maps_api_key)
     route = safe_city.get_routes(src.replace(" ", "+"), dst.replace(" ", "+"))
@@ -48,15 +46,10 @@ class SafeCity:
         return score
 
     def get_streets_from_route(self, route):
-        streets = set()
-        for leg in route['legs']:
-            for step in leg['steps']:
-                start_lat, start_lng = step['start_location']['lat'], step['start_location']['lng']
-                end_lat, end_lng = step['end_location']['lat'], step['end_location']['lng']
-                start_street = self.get_street_from_latlng(start_lat, start_lng)
-                end_street = self.get_street_from_latlng(end_lat, end_lng)
-                SafeCity.append_if_not_none([start_street, end_street], streets)
-        return streets
+        lat_langs = jq.compile('.legs[].steps[] | {latlng: [.start_location.lat, .start_location.lng] | '
+                               '@csv, latlng: [.end_location.lat, .end_location.lng] | @csv}.latlng').input(route).all()
+        vfunc = np.vectorize(self.get_street_from_latlng)
+        return set(vfunc(lat_langs))
 
     @staticmethod
     def append_if_not_none(elems, st):
@@ -75,20 +68,16 @@ class SafeCity:
             raise Exception("Error performing http request: ", json_results['error_message'])
         return json_results
 
-    def get_street_from_latlng(self, lat, lng):
+    def get_street_from_latlng(self, latlng):
         url = "https://maps.googleapis.com/maps/api/geocode/json?"
         params = {
-            "latlng": f"{lat},{lng}",
+            "latlng": latlng,
             "result_type": "street_address"
         }
         json_results = self.get_request_wrapper(url, params)
         if not json_results:
             return None
-        for result in json_results['results']:
-            for adc in result['address_components']:
-                if "route" in adc["types"]:
-                    return adc['long_name']
-        return None
+        return jq.compile('.results[0].address_components[] | select(.types |index("route")).short_name').input(json_results).first()
 
     def get_routes(self, origin, destination, waypoints=None):
         url = "https://maps.googleapis.com/maps/api/directions/json?"
