@@ -36,7 +36,7 @@ export default function Landing() {
             marginBottom: "8%",
           }}
         >
-          <h3 style={{ lineHeight: 1.5 , fontSize: "2.9rem"}}>
+          <h3 style={{ lineHeight: 1.5 , fontSize: "2.4rem"}}>
 
             Stride with Confidence: Your Guide to Safer Walks<br />
 
