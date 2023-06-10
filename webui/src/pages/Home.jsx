@@ -101,11 +101,11 @@ export default function AppHome() {
         </h1>
         <AddressesGoogleMapsAutoComplete
           setSelectedAddresses={setSelectedSource}
-          placeHolder="Where Are You At ?"
+          placeHolder="Where Are You?"
         />
         <AddressesGoogleMapsAutoComplete
           setSelectedAddresses={setSelectedDestination}
-          placeHolder="Where Are You Want To Go ?"
+          placeHolder="Where Do You Want To Go?"
         />
         <br />
         <button
