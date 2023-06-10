@@ -99,8 +99,7 @@ class SafeCity:
         return jq.compile('.results[0].address_components[] | '
                           'select(.types | index("route")).short_name').input(json_results).first()
 
-    def get_routes(self, origin, destination, num_waypoints=None):
-        waypoints = self.sample_waypoints(origin, destination, num_waypoints)
+    def get_routes(self, origin, destination, num_waypoints=0):
         url = "https://maps.googleapis.com/maps/api/directions/json?"
         params = {
             "origin": origin,
@@ -108,7 +107,8 @@ class SafeCity:
             "mode": "walking",
             "alternatives": "true",
         }
-        if waypoints is not None:
+        if num_waypoints != 0:
+            waypoints = self.sample_waypoints(origin, destination, num_waypoints)
             params['waypoints'] = f"{'|'.join(waypoints)}"
 
         json_results = self.get_request_wrapper(url, params)
