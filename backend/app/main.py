@@ -41,8 +41,8 @@ streets_metadata = load_streets_metadata()
 async def welcome(src: str, dst: str):
     maps_api_key = "AIzaSyCuKXnYCsXCRcJlWL4wuCD6CUkJoN0YNS8"
     safe_city = SafeCity(maps_api_key)
-    route = safe_city.get_routes(src.replace(" ", "+"), dst.replace(" ", "+"), num_waypoints=10)
-    return {"route": route[0]}
+    route = safe_city.get_safest_route(src.replace(" ", "+"), dst.replace(" ", "+"), num_waypoints=100)
+    return {"route": route}
 
 
 class SafeCity:
@@ -112,11 +112,16 @@ class SafeCity:
             params['waypoints'] = f"{'|'.join(waypoints)}"
 
         json_results = self.get_request_wrapper(url, params)
-        routes = json_results['routes']
+        return json_results['routes']
+
+    def get_safest_route(self, origin, destination, num_waypoints=0):
+        routes = self.get_routes(origin, destination, num_waypoints=0)
+        if num_waypoints != 0:
+            routes += self.get_routes(origin, destination, num_waypoints)
         scores = np.array([self.get_route_score(route) for route in routes])
         srtd_args = - np.argsort(- scores)
         encoded_routes = [routes[idx]['overview_polyline']['points'] for idx in srtd_args]
-        return encoded_routes
+        return encoded_routes[-1]
 
     def calculate_bounding_box(self, origin, destination):
         url = "https://maps.googleapis.com/maps/api/directions/json?"
