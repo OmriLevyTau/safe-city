@@ -41,7 +41,7 @@ streets_metadata = load_streets_metadata()
 async def welcome(src: str, dst: str):
     maps_api_key = "AIzaSyCuKXnYCsXCRcJlWL4wuCD6CUkJoN0YNS8"
     safe_city = SafeCity(maps_api_key)
-    route = safe_city.get_routes_improved(src.replace(" ", "+"), dst.replace(" ", "+"))
+    route = safe_city.get_routes_improved(src.replace(" ", "+"), dst.replace(" ", "+"), num_waypoints=10)
     return {"route": route[0]}
 
 
@@ -169,6 +169,6 @@ class SafeCity:
         waypoints = [f"{waypoints_langs[i]},{waypoints_lats[i]}" for i in range(len(waypoints_langs))]
         return waypoints
 
-    def get_routes_improved(self, origin, destination):
-        waypoints = self.sample_waypoints(origin, destination, num_waypoints=2)
+    def get_routes_improved(self, origin, destination, num_waypoints):
+        waypoints = self.sample_waypoints(origin, destination, num_waypoints)
         return self.get_routes(origin, destination, waypoints)
