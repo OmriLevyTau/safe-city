@@ -62,7 +62,7 @@ class SafeCity:
         score = 0
         for street in streets:
             score += self.get_street_score(street)
-        return score
+        return score / len(streets)
 
     def get_streets_from_route(self, route):
         lat_langs = jq.compile('.legs[].steps[] | {latlng: [.start_location.lat, .start_location.lng] | '
