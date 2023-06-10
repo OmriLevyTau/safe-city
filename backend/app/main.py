@@ -96,7 +96,8 @@ class SafeCity:
         json_results = self.get_request_wrapper(url, params)
         if not json_results:
             return None
-        return jq.compile('.results[0].address_components[] | select(.types |index("route")).short_name').input(json_results).first()
+        return jq.compile('.results[0].address_components[] | '
+                          'select(.types | index("route")).short_name').input(json_results).first()
 
     def get_routes(self, origin, destination, waypoints=None):
         url = "https://maps.googleapis.com/maps/api/directions/json?"
