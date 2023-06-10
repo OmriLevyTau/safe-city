@@ -41,7 +41,7 @@ streets_metadata = load_streets_metadata()
 async def welcome(src: str, dst: str):
     maps_api_key = "AIzaSyCuKXnYCsXCRcJlWL4wuCD6CUkJoN0YNS8"
     safe_city = SafeCity(maps_api_key)
-    route = safe_city.get_routes(src.replace(" ", "+"), dst.replace(" ", "+"))
+    route = safe_city.get_routes_improved(src.replace(" ", "+"), dst.replace(" ", "+"))
     return {"route": route[0]}
 
 
@@ -153,16 +153,22 @@ class SafeCity:
 
     @staticmethod
     def sample_from_street(street):
-        start, end = street['geometry'].xy
-        lat = np.random.uniform(low=start[0], high=end[0], size=2)
-        lng = np.random.uniform(low=start[1], high=end[1], size=2)
-        return lat, lng
+        zipped_points = list(zip(street['geometry'].xy[0],street['geometry'].xy[1])) 
+        start, end = zipped_points[0], zipped_points[-1]
+        lats = np.random.uniform(low=start[0], high=end[0], size=2)
+        lngs = np.random.uniform(low=start[1], high=end[1], size=2)
+        return lats, lngs
+
+    def sample_waypoints(self, origin, destination, num_waypoints):
+        streets = []
+        lats, lngs = self.sample_points_in_box(origin, destination, num_waypoints)
+        for lat, lng in zip(lats, lngs):
+            streets.append(self.get_closest_street(lng, lat))
+        best_street = self.get_street_with_max_score(streets)
+        waypoints_lats, waypoints_langs = self.sample_from_street(best_street)
+        waypoints = [f"{waypoints_langs[i]},{waypoints_lats[i]}" for i in range(len(waypoints_langs))]
+        return waypoints
 
     def get_routes_improved(self, origin, destination):
-        streets = []
-        lats, lngs = self.sample_points_in_box(origin, destination, 2)
-        for lat, lng in zip(lats, lngs):
-            streets.append(self.get_closest_street(lat, lng))
-        best_street = self.get_street_with_max_score(streets)
-        waypoints = self.sample_from_street(best_street)
+        waypoints = self.sample_waypoints(origin, destination, num_waypoints=2)
         return self.get_routes(origin, destination, waypoints)
